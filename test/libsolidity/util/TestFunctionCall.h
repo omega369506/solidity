@@ -23,8 +23,6 @@
 #include <libsolutil/CommonData.h>
 #include <libsolutil/JSON.h>
 
-#include <json/json.h>
-
 #include <iosfwd>
 #include <numeric>
 #include <stdexcept>
@@ -154,7 +152,7 @@ private:
 	bool m_failure = true;
 	/// JSON object which holds the contract ABI and that is used to set the output formatting
 	/// in the interactive update routine.
-	Json::Value m_contractABI = Json::Value{};
+	Json m_contractABI = Json{};
 	/// Flags that the test failed because the called function is not known to exist on the contract.
 	bool m_calledNonExistingFunction = false;
 };

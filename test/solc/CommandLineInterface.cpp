@@ -1157,11 +1157,11 @@ BOOST_AUTO_TEST_CASE(standard_json_include_paths)
 
 	OptionsReaderAndMessages result = runCLI(commandLine, standardJsonInput);
 
-	Json::Value parsedStdout;
+	Json parsedStdout;
 	std::string jsonParsingErrors;
 	BOOST_TEST(util::jsonParseStrict(result.stdoutContent, parsedStdout, &jsonParsingErrors));
 	BOOST_TEST(jsonParsingErrors == "");
-	for (Json::Value const& errorDict: parsedStdout["errors"])
+	for (Json const& errorDict: parsedStdout["errors"])
 		// The error list might contain pre-release compiler warning
 		BOOST_TEST(errorDict["severity"] != "error");
 	BOOST_TEST(

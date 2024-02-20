@@ -333,7 +333,7 @@ pair<string, string> ProtoConverter::visit(VarDecl const& _x)
 	return visit(_x.type());
 }
 
-std::string ProtoConverter::equalityChecksAsString()
+std::string ProtoConverter::equalityChecksget<std::string>()
 {
 	return m_checks.str();
 }
@@ -696,7 +696,7 @@ string ProtoConverter::calldataHelperFunctions()
 		("parameters", typedParametersAsString(CalleeType::EXTERNAL))
 		("mutability", mutability)
 		("finalIndirection", finalIndirection)
-		("equality_checks", equalityChecksAsString())
+		("equality_checks", equalityChecksget<std::string>())
 		("NPlusOne", to_string(i + 1))
 		("untyped_parameters", m_untypedParamsExternal.str())
 		.render();
@@ -717,7 +717,7 @@ string ProtoConverter::calldataHelperFunctions()
 <indirections>
 	)")
 	("parameters_memory", typedParametersAsString(CalleeType::PUBLIC))
-	("equality_checks", equalityChecksAsString())
+	("equality_checks", equalityChecksget<std::string>())
 	("parameters_calldata", typedParametersAsString(CalleeType::EXTERNAL))
 	("untyped_parameters", m_untypedParamsExternal.str())
 	("indirections", indirections.str())
