@@ -1165,7 +1165,7 @@ BOOST_AUTO_TEST_CASE(standard_json_include_paths)
 		// The error list might contain pre-release compiler warning
 		BOOST_TEST(errorDict["severity"] != "error");
 	BOOST_TEST(
-		(parsedStdout["sources"].getMemberNames() | ranges::to<std::set>) ==
+		(parsedStdout["sources"].items() | ranges::to<std::set>) ==
 		(expectedSources | ranges::views::keys | ranges::to<std::set>) + std::set<std::string>{"main.sol"}
 	);
 
