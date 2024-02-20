@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include <json/json.h>
+#include <json/json.hpp>
 
 #include <string>
 #include <string_view>
