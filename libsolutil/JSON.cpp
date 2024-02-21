@@ -22,6 +22,9 @@
 
 #include <libsolutil/JSON.h>
 
+#include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/trim.hpp>
+
 #include <map>
 #include <sstream>
 
@@ -57,6 +60,64 @@ void removeNullMembersHelper(Json& _json)
 	}
 }
 
+std::string trim_right_all_lines(std::string const& input)
+{
+	std::vector<std::string> lines;
+	std::string output;
+	boost::split(lines, input, boost::is_any_of("\n"));
+	for (auto& line: lines)
+	{
+		boost::trim_right(line);
+		if (!line.empty())
+			output += line + "\n";
+	}
+	return boost::trim_right_copy(output);
+}
+
+std::string format_like_jsoncpp(std::string const& _dumped, JsonFormat const& _format)
+{
+	uint32_t indentLevel = 0;
+	std::stringstream reformatted;
+	bool inQuotes = false;
+	for (size_t i = 0; i < _dumped.size(); ++i)
+	{
+		char c = _dumped[i];
+		bool emptyThing = false;
+
+		if (c == '"' && (i == 0 || _dumped[i - 1] != '\\'))
+			inQuotes = !inQuotes;
+
+		if (!inQuotes)
+		{
+			if (i < _dumped.size() - 1)
+			{
+				char nc = _dumped[i + 1];
+				if ((c == '[' && nc == ']') || (c == '{' && nc == '}'))
+					emptyThing = true;
+			}
+			if (c == '[' || c == '{')
+			{
+				if (i > 0 && _dumped[i - 1] != '\n')
+					if (!emptyThing)
+						reformatted << '\n' << std::string(indentLevel * _format.indent, ' ');
+				indentLevel++;
+			}
+			else if (c == ']' || c == '}')
+			{
+				indentLevel--;
+				if (i + 1 < _dumped.size() && _dumped[i + 1] != '\n'
+					&& (_dumped[i + 1] == ']' || _dumped[i + 1] == '}'))
+					reformatted << '\n' << std::string(indentLevel * _format.indent, ' ');
+			}
+		}
+		reformatted << c;
+		if (!emptyThing && !inQuotes && (c == '[' || c == '{') && indentLevel > 0 && i + 1 < _dumped.size()
+			&& _dumped[i + 1] != '\n')
+			reformatted << '\n' << std::string(indentLevel * _format.indent, ' ');
+	}
+	return trim_right_all_lines(reformatted.str());
+}
+
 } // end anonymous namespace
 
 Json removeNullMembers(Json _json)
@@ -72,11 +133,17 @@ std::string jsonCompactPrint(Json const& _input) { return jsonPrint(_input, Json
 std::string jsonPrint(Json const& _input, JsonFormat const& _format)
 {
 	// NOTE: -1 here means no new lines (it is also the default setting)
-	return _input.dump(
+	std::string dumped = _input.dump(
 		/* indent */ (_format.format == JsonFormat::Pretty) ? static_cast<int>(_format.indent) : -1,
 		/* indent_char */ ' ',
 		/* ensure_ascii */ true
 	);
+
+	// let's remove this once all test-cases having the correct output.
+	if (_format.format == JsonFormat::Pretty)
+		dumped = format_like_jsoncpp(dumped, _format);
+
+	return dumped;
 }
 
 bool jsonParseStrict(std::string const& _input, Json& _json, std::string* _errs /* = nullptr */)
