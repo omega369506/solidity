@@ -131,7 +131,7 @@ Json ASTJsonExporter::sourceLocationsToJson(std::vector<SourceLocation> const& _
 	Json locations = Json::array();
 
 	for (SourceLocation const& location: _sourceLocations)
-		locations.push_back(sourceLocationToString(location));
+		locations.emplace_back(sourceLocationToString(location));
 
 	return locations;
 }
