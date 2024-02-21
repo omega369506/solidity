@@ -1002,7 +1002,7 @@ bool ASTJsonExporter::visit(ElementaryTypeNameExpression const& _node)
 
 bool ASTJsonExporter::visit(Literal const& _node)
 {
-	Json value{_node.value()};
+	Json value = _node.value();
 	if (!util::validateUTF8(_node.value()))
 		value = Json{};
 	Token subdenomination = Token(_node.subDenomination());
@@ -1024,15 +1024,13 @@ bool ASTJsonExporter::visit(Literal const& _node)
 
 bool ASTJsonExporter::visit(StructuredDocumentation const& _node)
 {
-	Json text{*_node.text()};
+	Json text = *_node.text();
 	std::vector<std::pair<std::string, Json>> attributes = {
 		std::make_pair("text", text)
 	};
 	setJsonNode(_node, "StructuredDocumentation", std::move(attributes));
 	return false;
 }
-
-
 
 void ASTJsonExporter::endVisit(EventDefinition const&)
 {

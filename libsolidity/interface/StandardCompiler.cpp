@@ -985,7 +985,7 @@ std::variant<StandardCompiler::InputsAndSettings, Json> StandardCompiler::parseI
 	if (auto jsonError = checkOutputSelection(outputSelection))
 		return *jsonError;
 
-	ret.outputSelection = std::move(outputSelection);
+	ret.outputSelection = outputSelection;
 
 	if (ret.stopAfter != CompilerStack::State::CompilationSuccessful && isBinaryRequested(ret.outputSelection))
 		return formatFatalError(

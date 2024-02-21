@@ -41,9 +41,8 @@ bool anyDataStoredInStorage(TypePointers const& _pointers)
 Json ABI::generate(ContractDefinition const& _contractDef)
 {
 	auto compare = [](Json const& _a, Json const& _b) -> bool {
-		if (_a.contains("type") && _a.contains("name") && _b.contains("type") && _b.contains("name"))
-			return std::make_tuple(_a["type"], _a["name"]) < std::make_tuple(_b["type"], _b["name"]);
-		return false;
+		return std::make_tuple(_a.value("type", Json{}), _a.value("name", Json{})) <
+			   std::make_tuple(_b.value("type", Json{}), _b.value("name", Json{}));
 	};
 	std::multiset<Json, decltype(compare)> abi(compare);
 
