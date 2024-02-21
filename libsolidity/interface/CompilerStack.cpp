@@ -1678,15 +1678,14 @@ std::string CompilerStack::createMetadata(Contract const& _contract, bool _forIR
 		else
 		{
 			meta["sources"][s.first]["urls"] = Json::array();
-			meta["sources"][s.first]["urls"].push_back("bzz-raw://" + util::toHex(s.second.swarmHash().asBytes()));
-			meta["sources"][s.first]["urls"].push_back(s.second.ipfsUrl());
+			meta["sources"][s.first]["urls"].emplace_back("bzz-raw://" + util::toHex(s.second.swarmHash().asBytes()));
+			meta["sources"][s.first]["urls"].emplace_back(s.second.ipfsUrl());
 		}
 	}
 
-	// TODO: check logic
-	static_assert(sizeof(m_optimiserSettings.expectedExecutionsPerDeployment) <= sizeof(int64_t), "Invalid word size.");
-	solAssert(static_cast<int64_t>(m_optimiserSettings.expectedExecutionsPerDeployment) < std::numeric_limits<int64_t>::max(), "");
-	meta["settings"]["optimizer"]["runs"] = Json(m_optimiserSettings.expectedExecutionsPerDeployment);
+	static_assert(sizeof(m_optimiserSettings.expectedExecutionsPerDeployment) <= sizeof(Json::number_integer_t), "Invalid word size.");
+	solAssert(static_cast<Json::number_integer_t>(m_optimiserSettings.expectedExecutionsPerDeployment) < std::numeric_limits<Json::number_integer_t>::max(), "");
+	meta["settings"]["optimizer"]["runs"] = Json::number_integer_t(m_optimiserSettings.expectedExecutionsPerDeployment);
 
 	/// Backwards compatibility: If set to one of the default settings, do not provide details.
 	OptimiserSettings settingsWithoutRuns = m_optimiserSettings;
@@ -1759,7 +1758,7 @@ std::string CompilerStack::createMetadata(Contract const& _contract, bool _forIR
 	for (auto const& r: m_importRemapper.remappings())
 		remappings.insert(r.context + ":" + r.prefix + "=" + r.target);
 	for (auto const& r: remappings)
-		meta["settings"]["remappings"].push_back(r);
+		meta["settings"]["remappings"].emplace_back(r);
 
 	meta["settings"]["libraries"] = Json::object();
 	for (auto const& library: m_libraries)
@@ -1898,6 +1897,7 @@ Json gasToJson(GasEstimator::GasConsumption const& _gas)
 	if (_gas.isInfinite)
 		return Json("infinite");
 	else
+		// TODO use _gas.value.str()?
 		return Json(util::toString(_gas.value));
 }
 

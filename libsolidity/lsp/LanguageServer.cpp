@@ -115,14 +115,14 @@ Json semanticTokensLegend()
 	tokenTypes.push_back("variable");
 	legend["tokenTypes"] = tokenTypes;
 
-	Json tokenModifiers = Json::array();
-	tokenModifiers.push_back("abstract");
-	tokenModifiers.push_back("declaration");
-	tokenModifiers.push_back("definition");
-	tokenModifiers.push_back("deprecated");
-	tokenModifiers.push_back("documentation");
-	tokenModifiers.push_back("modification");
-	tokenModifiers.push_back("readonly");
+	Json tokenModifiers{Json::array()};
+	tokenModifiers.emplace_back("abstract");
+	tokenModifiers.emplace_back("declaration");
+	tokenModifiers.emplace_back("definition");
+	tokenModifiers.emplace_back("deprecated");
+	tokenModifiers.emplace_back("documentation");
+	tokenModifiers.emplace_back("modification");
+	tokenModifiers.emplace_back("readonly");
 	legend["tokenModifiers"] = tokenModifiers;
 
 	return legend;
@@ -287,10 +287,10 @@ void LanguageServer::compileAndUpdateDiagnostics()
 			// LSP only has diagnostics applied to individual files.
 			continue;
 
-		Json jsonDiag;
+		Json jsonDiag{Json::object()};
 		jsonDiag["source"] = "solc";
 		jsonDiag["severity"] = toDiagnosticSeverity(error->type());
-		jsonDiag["code"] = error->errorId().error;
+		jsonDiag["code"] = Json{error->errorId().error};
 		std::string message = Error::formatErrorType(error->type()) + ":";
 		if (std::string const* comment = error->comment())
 			message += " " + *comment;
@@ -300,26 +300,26 @@ void LanguageServer::compileAndUpdateDiagnostics()
 		if (auto const* secondary = error->secondarySourceLocation())
 			for (auto&& [secondaryMessage, secondaryLocation]: secondary->infos)
 			{
-				Json jsonRelated;
+				Json jsonRelated{Json::object()};
 				jsonRelated["message"] = secondaryMessage;
 				jsonRelated["location"] = toJson(secondaryLocation);
-				jsonDiag["relatedInformation"].push_back(jsonRelated);
+				jsonDiag["relatedInformation"].emplace_back(jsonRelated);
 			}
 
-		diagnosticsBySourceUnit[*location->sourceName].push_back(jsonDiag);
+		diagnosticsBySourceUnit[*location->sourceName].emplace_back(jsonDiag);
 	}
 
 	if (m_client.traceValue() != TraceValue::Off)
 	{
 		Json extra;
-		extra["openFileCount"] = diagnosticsBySourceUnit.size();
+		extra["openFileCount"] = Json(diagnosticsBySourceUnit.size());
 		m_client.trace("Number of currently open files: " + std::to_string(diagnosticsBySourceUnit.size()), extra);
 	}
 
 	m_nonemptyDiagnostics.clear();
 	for (auto&& [sourceUnitName, diagnostics]: diagnosticsBySourceUnit)
 	{
-		Json params;
+		Json params{Json::object()};
 		params["uri"] = m_fileRepository.sourceUnitNameToUri(sourceUnitName);
 		if (!diagnostics.empty())
 			m_nonemptyDiagnostics.insert(sourceUnitName);
@@ -411,7 +411,7 @@ void LanguageServer::handleInitialize(MessageID _id, Json const& _args)
 	if (_args["initializationOptions"].is_object())
 		changeConfiguration(_args["initializationOptions"]);
 
-	Json replyArgs;
+	Json replyArgs{Json::object()};
 	replyArgs["serverInfo"]["name"] = "solc";
 	replyArgs["serverInfo"]["version"] = std::string(VersionNumber);
 	replyArgs["capabilities"]["definitionProvider"] = true;
@@ -444,7 +444,7 @@ void LanguageServer::semanticTokensFull(MessageID _id, Json const& _args)
 	m_compilerStack.charStream(sourceName);
 	Json data = SemanticTokensBuilder().build(ast, m_compilerStack.charStream(sourceName));
 
-	Json reply = Json::object();
+	Json reply{Json::object()};
 	reply["data"] = data;
 
 	m_client.reply(_id, std::move(reply));

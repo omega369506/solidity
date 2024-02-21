@@ -361,15 +361,15 @@ void CommandLineInterface::handleSignatureHashes(std::string const& _contract)
 	if (interfaceSymbols.contains("errors"))
 	{
 		out += "\nError signatures:\n";
-		for (auto const& [name, _]: interfaceSymbols["errors"].items())
-			out += interfaceSymbols["errors"][name].get<std::string>() + ": " + name + "\n";
+		for (auto const& [name, value]: interfaceSymbols["errors"].items())
+			out += value.get<std::string>() + ": " + name + "\n";
 	}
 
 	if (interfaceSymbols.contains("events"))
 	{
 		out += "\nEvent signatures:\n";
-		for (auto const& [name, _]: interfaceSymbols["events"].items())
-			out += interfaceSymbols["events"][name].get<std::string>() + ": " + name + "\n";
+		for (auto const& [name, value]: interfaceSymbols["events"].items())
+			out += value.get<std::string>() + ": " + name + "\n";
 	}
 
 	if (!m_options.output.dir.empty())
@@ -626,7 +626,7 @@ std::map<std::string, Json> CommandLineInterface::parseAstFromInput()
 		astAssert(jsonParseStrict(sourceCode, ast), "Input file could not be parsed to JSON");
 		astAssert(ast.contains("sources"), "Invalid Format for import-JSON: Must have 'sources'-object");
 
-		for (auto& [src, _]: ast["sources"].items())
+		for (auto const& [src, _]: ast["sources"].items())
 		{
 			std::string astKey = ast["sources"][src].contains("ast") ? "ast" : "AST";
 
@@ -948,7 +948,7 @@ void CommandLineInterface::handleCombinedJSON()
 	std::vector<std::string> contracts = m_assemblyStack->contractNames();
 
 	if (!contracts.empty())
-		output[g_strContracts] = Json(Json::object());
+		output[g_strContracts] = Json::object();
 	for (std::string const& contractName: contracts)
 	{
 		Json& contractData = output[g_strContracts][contractName] = Json::object();
@@ -1013,7 +1013,7 @@ void CommandLineInterface::handleCombinedJSON()
 	if (needsSourceList)
 	{
 		// Indices into this array are used to abbreviate source names in source locations.
-		output[g_strSourceList] = Json(Json::array());
+		output[g_strSourceList] = Json::array();
 
 		for (auto const& source: m_assemblyStack->sourceNames())
 			output[g_strSourceList].push_back(source);
@@ -1022,10 +1022,10 @@ void CommandLineInterface::handleCombinedJSON()
 	if (m_options.compiler.combinedJsonRequests->ast)
 	{
 		solAssert(m_compiler);
-		output[g_strSources] = Json(Json::object());
+		output[g_strSources] = Json::object();
 		for (auto const& sourceCode: m_fileReader.sourceUnits())
 		{
-			output[g_strSources][sourceCode.first] = Json(Json::object());
+			output[g_strSources][sourceCode.first] = Json::object();
 			output[g_strSources][sourceCode.first]["AST"] = ASTJsonExporter(
 				m_compiler->state(),
 				m_compiler->sourceIndices()

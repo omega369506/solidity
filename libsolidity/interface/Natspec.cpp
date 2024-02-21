@@ -90,7 +90,7 @@ Json Natspec::userDocumentation(ContractDefinition const& _contractDef)
 		{
 			Json errorDoc{Json::object()};
 			errorDoc["notice"] = value;
-			doc["errors"][error->functionType(true)->externalSignature()].push_back(std::move(errorDoc));
+			doc["errors"][error->functionType(true)->externalSignature()].emplace_back(std::move(errorDoc));
 		}
 	}
 
@@ -171,7 +171,7 @@ Json Natspec::devDocumentation(ContractDefinition const& _contractDef)
 			doc["events"][event->functionType(true)->externalSignature()] = devDoc;
 	for (auto const& error: _contractDef.interfaceErrors())
 		if (auto devDoc = devDocumentation(error->annotation().docTags); !devDoc.empty())
-			doc["errors"][error->functionType(true)->externalSignature()].push_back(devDoc);
+			doc["errors"][error->functionType(true)->externalSignature()].emplace_back(devDoc);
 
 	return doc;
 }

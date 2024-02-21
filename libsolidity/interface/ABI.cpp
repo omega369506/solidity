@@ -115,7 +115,7 @@ Json ABI::generate(ContractDefinition const& _contractDef)
 			solAssert(type, "");
 			auto param = formatType(p->name(), *type, *p->annotation().type, false);
 			param["indexed"] = p->isIndexed();
-			params.push_back(std::move(param));
+			params.emplace_back(param);
 		}
 		event["inputs"] = std::move(params);
 		abi.emplace(std::move(event));
@@ -131,7 +131,7 @@ Json ABI::generate(ContractDefinition const& _contractDef)
 		{
 			Type const* type = p->annotation().type->interfaceType(false);
 			solAssert(type, "");
-			errorJson["inputs"].push_back(
+			errorJson["inputs"].emplace_back(
 				formatType(p->name(), *type, *p->annotation().type, false)
 			);
 		}
@@ -140,7 +140,7 @@ Json ABI::generate(ContractDefinition const& _contractDef)
 
 	Json abiJson{Json::array()};
 	for (auto& f: abi)
-		abiJson.push_back(std::move(f));
+		abiJson.emplace_back(std::move(f));
 	return abiJson;
 }
 
@@ -157,7 +157,7 @@ Json ABI::formatTypeList(
 	for (unsigned i = 0; i < _names.size(); ++i)
 	{
 		solAssert(_encodingTypes[i], "");
-		params.push_back(formatType(_names[i], *_encodingTypes[i], *_solidityTypes[i], _forLibrary));
+		params.emplace_back(formatType(_names[i], *_encodingTypes[i], *_solidityTypes[i], _forLibrary));
 	}
 	return params;
 }
@@ -211,7 +211,7 @@ Json ABI::formatType(
 			solAssert(member.type, "");
 			Type const* t = member.type->interfaceType(_forLibrary);
 			solAssert(t, "");
-			ret["components"].push_back(formatType(member.name, *t, *member.type, _forLibrary));
+			ret["components"].emplace_back(formatType(member.name, *t, *member.type, _forLibrary));
 		}
 	}
 	else

@@ -84,7 +84,7 @@ Json AsmJsonConverter::operator()(Assignment const& _node) const
 	yulAssert(_node.variableNames.size() >= 1, "Invalid assignment syntax");
 	Json ret = createAstNode(originLocationOf(_node), nativeLocationOf(_node), "YulAssignment");
 	for (auto const& var: _node.variableNames)
-		ret["variableNames"].push_back((*this)(var));
+		ret["variableNames"].emplace_back((*this)(var));
 	ret["value"] = _node.value ? std::visit(*this, *_node.value) : Json{};
 	return ret;
 }
@@ -108,10 +108,8 @@ Json AsmJsonConverter::operator()(VariableDeclaration const& _node) const
 {
 	Json ret = createAstNode(originLocationOf(_node), nativeLocationOf(_node), "YulVariableDeclaration");
 	for (auto const& var: _node.variables)
-		ret["variables"].push_back((*this)(var));
-
+		ret["variables"].emplace_back((*this)(var));
 	ret["value"] = _node.value ? std::visit(*this, *_node.value) : Json{};
-
 	return ret;
 }
 
@@ -121,9 +119,9 @@ Json AsmJsonConverter::operator()(FunctionDefinition const& _node) const
 	Json ret = createAstNode(originLocationOf(_node), nativeLocationOf(_node), "YulFunctionDefinition");
 	ret["name"] = _node.name.str();
 	for (auto const& var: _node.parameters)
-		ret["parameters"].push_back((*this)(var));
+		ret["parameters"].emplace_back((*this)(var));
 	for (auto const& var: _node.returnVariables)
-		ret["returnVariables"].push_back((*this)(var));
+		ret["returnVariables"].emplace_back((*this)(var));
 	ret["body"] = (*this)(_node.body);
 	return ret;
 }
@@ -143,7 +141,7 @@ Json AsmJsonConverter::operator()(Switch const& _node) const
 	Json ret = createAstNode(originLocationOf(_node), nativeLocationOf(_node), "YulSwitch");
 	ret["expression"] = std::visit(*this, *_node.expression);
 	for (auto const& var: _node.cases)
-		ret["cases"].push_back((*this)(var));
+		ret["cases"].emplace_back((*this)(var));
 	return ret;
 }
 
@@ -200,7 +198,7 @@ Json AsmJsonConverter::vectorOfVariantsToJson(std::vector<T> const& _vec) const
 {
 	Json ret{Json::array()};
 	for (auto const& var: _vec)
-		ret.push_back(std::visit(*this, var));
+		ret.emplace_back(std::visit(*this, var));
 	return ret;
 }
 

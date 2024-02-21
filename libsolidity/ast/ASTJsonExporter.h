@@ -63,12 +63,12 @@ public:
 	template <class T>
 	Json toJson(std::vector<ASTPointer<T>> const& _nodes)
 	{
-		Json ret(Json::array());
+		Json ret{Json::array()};
 		for (auto const& n: _nodes)
 			if (n)
 				appendMove(ret, toJson(*n));
 			else
-				ret.push_back(Json{});
+				ret.emplace_back(Json{});
 		return ret;
 	}
 	bool visit(SourceUnit const& _node) override;
@@ -177,11 +177,10 @@ private:
 		}
 		if (_order)
 			std::sort(tmp.begin(), tmp.end());
-		Json json(Json::array());
 
+		Json json{Json::array()};
 		for (int64_t val: tmp)
-			json.push_back(val);
-
+			json.emplace_back(val);
 		return json;
 	}
 	static Json typePointerToJson(Type const* _tp, bool _withoutDataLocation = false);
@@ -193,7 +192,7 @@ private:
 	static void appendMove(Json& _array, Json&& _value)
 	{
 		solAssert(_array.is_array(), "");
-		_array.push_back(std::move(_value));
+		_array.emplace_back(std::move(_value));
 	}
 
 	CompilerStack::State m_stackState = CompilerStack::State::Empty; ///< Used to only access information that already exists

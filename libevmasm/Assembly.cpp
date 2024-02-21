@@ -459,7 +459,7 @@ Json Assembly::assemblyJSON(std::map<std::string, unsigned> const& _sourceIndice
 		if (!data.empty())
 			jsonItem["value"] = data;
 		jsonItem["source"] = sourceIndex;
-		code.push_back(std::move(jsonItem));
+		code.emplace_back(std::move(jsonItem));
 
 		if (item.type() == AssemblyItemType::Tag)
 		{
@@ -470,7 +470,7 @@ Json Assembly::assemblyJSON(std::map<std::string, unsigned> const& _sourceIndice
 			jumpdest["source"] = sourceIndex;
 			if (item.m_modifierDepth != 0)
 				jumpdest["modifierDepth"] = static_cast<int>(item.m_modifierDepth);
-			code.push_back(std::move(jumpdest));
+			code.emplace_back(std::move(jumpdest));
 		}
 	}
 	if (_includeSourceList)
@@ -568,8 +568,8 @@ std::pair<std::shared_ptr<Assembly>, std::vector<std::string>> Assembly::fromJSO
 		std::map<size_t, std::shared_ptr<Assembly>> subAssemblies;
 		for (Json::const_iterator dataIter = data.begin(); dataIter != data.end(); dataIter++)
 		{
-			solAssert(dataIter->is_string());
-			std::string dataItemID = dataIter->get<std::string>();
+			solAssert(dataIter.value().is_string());
+			std::string dataItemID = dataIter.value().get<std::string>();
 			Json const& dataItem = data[dataItemID];
 			if (dataItem.is_string())
 			{

@@ -80,7 +80,7 @@ Json formatFatalError(Error::Type _type, std::string const& _message)
 {
 	Json output{Json::object()};
 	output["errors"] = Json::array();
-	output["errors"].push_back(formatError(_type, "general", _message));
+	output["errors"].emplace_back(formatError(_type, "general", _message));
 	return output;
 }
 
@@ -106,7 +106,7 @@ Json formatSecondarySourceLocation(SecondarySourceLocation const* _secondaryLoca
 	{
 		Json msg = formatSourceLocation(&location.second);
 		msg["message"] = location.first;
-		secondarySourceLocation.push_back(msg);
+		secondarySourceLocation.emplace_back(msg);
 	}
 	return secondarySourceLocation;
 }
@@ -329,14 +329,14 @@ Json formatLinkReferences(std::map<size_t, std::string> const& linkReferences)
 		std::string file = (colon != std::string::npos ? fullname.substr(0, colon) : "");
 		std::string name = (colon != std::string::npos ? fullname.substr(colon + 1) : fullname);
 
-		Json& fileObject = ret[file];
-		Json& libraryArray = fileObject[name];
+		Json fileObject = ret.value(file, Json::object());
+		Json libraryArray = fileObject.value(name, Json::array());
 
 		Json entry{Json::object()};
-		entry["start"] = ref.first;
+		entry["start"] = Json(ref.first);
 		entry["length"] = 20;
 
-		libraryArray.push_back(entry);
+		libraryArray.emplace_back(entry);
 		fileObject[name] = libraryArray;
 		ret[file] = fileObject;
 	}
@@ -351,13 +351,13 @@ Json formatImmutableReferences(std::map<u256, std::pair<std::string, std::vector
 	for (auto const& immutableReference: _immutableReferences)
 	{
 		auto const& [identifier, byteOffsets] = immutableReference.second;
-		Json array(Json::array());
+		Json array{Json::array()};
 		for (size_t byteOffset: byteOffsets)
 		{
 			Json byteRange{Json::object()};
-			byteRange["start"] = byteOffset;
-			byteRange["length"] = 32; // immutable references are currently always 32 bytes wide
-			array.push_back(byteRange);
+			byteRange["start"] = Json::number_unsigned_t(byteOffset);
+			byteRange["length"] = Json::number_unsigned_t(32); // immutable references are currently always 32 bytes wide
+			array.emplace_back(byteRange);
 		}
 		ret[identifier] = array;
 	}
@@ -394,7 +394,7 @@ Json collectEVMObject(
 
 std::optional<Json> checkKeys(Json const& _input, std::set<std::string> const& _keys, std::string const& _name)
 {
-	if (!_input.is_object())
+	if (!_input.empty() && !_input.is_object())
 		return formatFatalError(Error::Type::JSONError, "\"" + _name + "\" must be an object");
 
 	for (auto const& [member, _]: _input.items())
@@ -651,6 +651,7 @@ std::variant<StandardCompiler::InputsAndSettings, Json> StandardCompiler::parseI
 		return formatFatalError(Error::Type::JSONError, "No input sources specified.");
 
 	ret.errors = Json::array();
+	ret.sources = Json::object();
 
 	if (ret.language == "Solidity" || ret.language == "Yul")
 	{
@@ -668,7 +669,7 @@ std::variant<StandardCompiler::InputsAndSettings, Json> StandardCompiler::parseI
 			{
 				std::string content = sources[sourceName]["content"].get<std::string>();
 				if (!hash.empty() && !hashMatchesContent(hash, content))
-					ret.errors.push_back(formatError(
+					ret.errors.emplace_back(formatError(
 						Error::Type::IOError,
 						"general",
 						"Mismatch between content and supplied hash for \"" + sourceName + "\""
@@ -694,7 +695,7 @@ std::variant<StandardCompiler::InputsAndSettings, Json> StandardCompiler::parseI
 					if (result.success)
 					{
 						if (!hash.empty() && !hashMatchesContent(hash, result.responseOrErrorMessage))
-							ret.errors.push_back(formatError(
+							ret.errors.emplace_back(formatError(
 								Error::Type::IOError,
 								"general",
 								"Mismatch between content and supplied hash for \"" + sourceName + "\" at \"" + url.get<std::string>() + "\""
@@ -715,7 +716,7 @@ std::variant<StandardCompiler::InputsAndSettings, Json> StandardCompiler::parseI
 				for (auto const& failure: failures)
 				{
 					/// If the import succeeded, let mark all the others as warnings, otherwise all of them are errors.
-					ret.errors.push_back(formatError(
+					ret.errors.emplace_back(formatError(
 						found ? Error::Type::Warning : Error::Type::IOError,
 						"general",
 						failure
@@ -762,12 +763,12 @@ std::variant<StandardCompiler::InputsAndSettings, Json> StandardCompiler::parseI
 	if (!auxInputs.empty())
 	{
 		Json const& smtlib2Responses = auxInputs["smtlib2responses"];
-		if (!!smtlib2Responses)
+		if (!smtlib2Responses.empty())
 		{
 			if (!smtlib2Responses.is_object())
 				return formatFatalError(Error::Type::JSONError, "\"auxiliaryInput.smtlib2responses\" must be an object.");
 
-			for (auto const& [hashString, _]: smtlib2Responses.items())
+			for (auto const& [hashString, response]: smtlib2Responses.items())
 			{
 				util::h256 hash;
 				try
@@ -779,13 +780,13 @@ std::variant<StandardCompiler::InputsAndSettings, Json> StandardCompiler::parseI
 					return formatFatalError(Error::Type::JSONError, "Invalid hex encoding of SMTLib2 auxiliary input.");
 				}
 
-				if (!smtlib2Responses[hashString].is_string())
+				if (!response.is_string())
 					return formatFatalError(
 						Error::Type::JSONError,
 						"\"smtlib2Responses." + hashString + "\" must be a string."
 					);
 
-				ret.smtLib2Responses[hash] = smtlib2Responses[hashString].get<std::string>();
+				ret.smtLib2Responses[hash] = response.get<std::string>();
 			}
 		}
 	}
@@ -821,7 +822,7 @@ std::variant<StandardCompiler::InputsAndSettings, Json> StandardCompiler::parseI
 		if (!version)
 			return formatFatalError(Error::Type::JSONError, "Invalid EVM version requested.");
 		if (version < EVMVersion::constantinople())
-			ret.errors.push_back(formatError(
+			ret.errors.emplace_back(formatError(
 				Error::Type::Warning,
 				"general",
 				"Support for EVM versions older than constantinople is deprecated and will be removed in the future."
@@ -888,7 +889,7 @@ std::variant<StandardCompiler::InputsAndSettings, Json> StandardCompiler::parseI
 	if (settings.contains("remappings") && !settings["remappings"].is_array())
 		return formatFatalError(Error::Type::JSONError, "\"settings.remappings\" must be an array of strings.");
 
-	for (auto const& remapping: settings.value("remappings", Json::array()))
+	for (auto const& remapping: settings.value("remappings", Json::object()))
 	{
 		if (!remapping.is_string())
 			return formatFatalError(Error::Type::JSONError, "\"settings.remappings\" must be an array of strings");
@@ -910,9 +911,8 @@ std::variant<StandardCompiler::InputsAndSettings, Json> StandardCompiler::parseI
 	Json const& jsonLibraries = settings.value("libraries", Json::object());
 	if (!jsonLibraries.is_object())
 		return formatFatalError(Error::Type::JSONError, "\"libraries\" is not a JSON object.");
-	for (auto const& [sourceName, _]: jsonLibraries.items())
+	for (auto const& [sourceName, jsonSourceName]: jsonLibraries.items())
 	{
-		auto const& jsonSourceName = jsonLibraries[sourceName];
 		if (!jsonSourceName.is_object())
 			return formatFatalError(Error::Type::JSONError, "Library entry is not a JSON object.");
 		for (auto const& [library, _]: jsonSourceName.items())
@@ -953,15 +953,15 @@ std::variant<StandardCompiler::InputsAndSettings, Json> StandardCompiler::parseI
 		return *result;
 
 	solAssert(CompilerStack::defaultMetadataFormat() != CompilerStack::MetadataFormat::NoMetadata, "");
-	bool appendCBOR = true;
-	if (metadataSettings.contains("appendCBOR"))
-		appendCBOR = metadataSettings["appendCBOR"].get<bool>();
 	ret.metadataFormat =
-		appendCBOR ?
+		metadataSettings.value("appendCBOR", Json(true)) ?
 		CompilerStack::defaultMetadataFormat() :
 		CompilerStack::MetadataFormat::NoMetadata;
 
-	ret.metadataLiteralSources = metadataSettings.value("useLiteralContent", false);
+	ret.metadataLiteralSources =
+		metadataSettings.contains("useLiteralContent") &&
+		metadataSettings["useLiteralContent"].is_boolean() &&
+		metadataSettings["useLiteralContent"].get<bool>();
 	if (metadataSettings.contains("bytecodeHash"))
 	{
 		auto metadataHash = metadataSettings["bytecodeHash"].get<std::string>();
@@ -985,7 +985,7 @@ std::variant<StandardCompiler::InputsAndSettings, Json> StandardCompiler::parseI
 	if (auto jsonError = checkOutputSelection(outputSelection))
 		return *jsonError;
 
-	ret.outputSelection = outputSelection;
+	ret.outputSelection = std::move(outputSelection);
 
 	if (ret.stopAfter != CompilerStack::State::CompilationSuccessful && isBinaryRequested(ret.outputSelection))
 		return formatFatalError(
@@ -1167,7 +1167,7 @@ std::variant<StandardCompiler::InputsAndSettings, Json> StandardCompiler::parseI
 	{
 		if (!modelCheckerSettings["timeout"].is_number_unsigned())
 			return formatFatalError(Error::Type::JSONError, "settings.modelChecker.timeout must be an unsigned integer.");
-		ret.modelCheckerSettings.timeout = modelCheckerSettings["timeout"].get<unsigned>();
+		ret.modelCheckerSettings.timeout = modelCheckerSettings["timeout"].get<Json::number_unsigned_t>();
 	}
 
 	return {std::move(ret)};
@@ -1333,7 +1333,7 @@ Json StandardCompiler::compileSolidity(StandardCompiler::InputsAndSettings _inpu
 			{
 				compilerStack.importASTs(parseAstFromInput(sourceList));
 				if (!compilerStack.analyze())
-					errors.push_back(formatError(Error::Type::FatalError, "general", "Analysis of the AST failed."));
+					errors.emplace_back(formatError(Error::Type::FatalError, "general", "Analysis of the AST failed."));
 				if (binariesRequested)
 					compilerStack.compile();
 			}
@@ -1350,7 +1350,7 @@ Json StandardCompiler::compileSolidity(StandardCompiler::InputsAndSettings _inpu
 				compilerStack.parseAndAnalyze(_inputsAndSettings.stopAfter);
 
 			for (auto const& error: compilerStack.errors())
-				errors.push_back(formatErrorWithException(
+				errors.emplace_back(formatErrorWithException(
 					compilerStack,
 					*error,
 					error->type(),
@@ -1363,7 +1363,7 @@ Json StandardCompiler::compileSolidity(StandardCompiler::InputsAndSettings _inpu
 	/// This is only thrown in a very few locations.
 	catch (Error const& _error)
 	{
-		errors.push_back(formatErrorWithException(
+		errors.emplace_back(formatErrorWithException(
 			compilerStack,
 			_error,
 			_error.type(),
@@ -1374,7 +1374,7 @@ Json StandardCompiler::compileSolidity(StandardCompiler::InputsAndSettings _inpu
 	/// This should not be leaked from compile().
 	catch (FatalError const& _exception)
 	{
-		errors.push_back(formatError(
+		errors.emplace_back(formatError(
 			Error::Type::FatalError,
 			"general",
 			"Uncaught fatal error: " + boost::diagnostic_information(_exception)
@@ -1382,7 +1382,7 @@ Json StandardCompiler::compileSolidity(StandardCompiler::InputsAndSettings _inpu
 	}
 	catch (CompilerError const& _exception)
 	{
-		errors.push_back(formatErrorWithException(
+		errors.emplace_back(formatErrorWithException(
 			compilerStack,
 			_exception,
 			Error::Type::CompilerError,
@@ -1392,7 +1392,7 @@ Json StandardCompiler::compileSolidity(StandardCompiler::InputsAndSettings _inpu
 	}
 	catch (InternalCompilerError const& _exception)
 	{
-		errors.push_back(formatErrorWithException(
+		errors.emplace_back(formatErrorWithException(
 			compilerStack,
 			_exception,
 			Error::Type::InternalCompilerError,
@@ -1402,7 +1402,7 @@ Json StandardCompiler::compileSolidity(StandardCompiler::InputsAndSettings _inpu
 	}
 	catch (UnimplementedFeatureError const& _exception)
 	{
-		errors.push_back(formatErrorWithException(
+		errors.emplace_back(formatErrorWithException(
 			compilerStack,
 			_exception,
 			Error::Type::UnimplementedFeatureError,
@@ -1412,7 +1412,7 @@ Json StandardCompiler::compileSolidity(StandardCompiler::InputsAndSettings _inpu
 	}
 	catch (yul::YulException const& _exception)
 	{
-		errors.push_back(formatErrorWithException(
+		errors.emplace_back(formatErrorWithException(
 			compilerStack,
 			_exception,
 			Error::Type::YulException,
@@ -1422,7 +1422,7 @@ Json StandardCompiler::compileSolidity(StandardCompiler::InputsAndSettings _inpu
 	}
 	catch (smtutil::SMTLogicError const& _exception)
 	{
-		errors.push_back(formatErrorWithException(
+		errors.emplace_back(formatErrorWithException(
 			compilerStack,
 			_exception,
 			Error::Type::SMTLogicException,
@@ -1432,7 +1432,7 @@ Json StandardCompiler::compileSolidity(StandardCompiler::InputsAndSettings _inpu
 	}
 	catch (util::Exception const& _exception)
 	{
-		errors.push_back(formatError(
+		errors.emplace_back(formatError(
 			Error::Type::Exception,
 			"general",
 			"Exception during compilation: " + boost::diagnostic_information(_exception)
@@ -1440,7 +1440,7 @@ Json StandardCompiler::compileSolidity(StandardCompiler::InputsAndSettings _inpu
 	}
 	catch (std::exception const& _exception)
 	{
-		errors.push_back(formatError(
+		errors.emplace_back(formatError(
 			Error::Type::Exception,
 			"general",
 			"Unknown exception during compilation: " + boost::diagnostic_information(_exception)
@@ -1448,7 +1448,7 @@ Json StandardCompiler::compileSolidity(StandardCompiler::InputsAndSettings _inpu
 	}
 	catch (...)
 	{
-		errors.push_back(formatError(
+		errors.emplace_back(formatError(
 			Error::Type::Exception,
 			"general",
 			"Unknown exception during compilation: " + boost::current_exception_diagnostic_information()
@@ -1608,7 +1608,7 @@ Json StandardCompiler::compileYul(InputsAndSettings _inputsAndSettings)
 
 	if (_inputsAndSettings.sources.size() != 1)
 	{
-		output["errors"].push_back(formatError(
+		output["errors"].emplace_back(formatError(
 			Error::Type::JSONError,
 			"general",
 			"Yul mode only supports exactly one input file."
@@ -1617,7 +1617,7 @@ Json StandardCompiler::compileYul(InputsAndSettings _inputsAndSettings)
 	}
 	if (!_inputsAndSettings.smtLib2Responses.empty())
 	{
-		output["errors"].push_back(formatError(
+		output["errors"].emplace_back(formatError(
 			Error::Type::JSONError,
 			"general",
 			"Yul mode does not support smtlib2responses."
@@ -1626,7 +1626,7 @@ Json StandardCompiler::compileYul(InputsAndSettings _inputsAndSettings)
 	}
 	if (!_inputsAndSettings.remappings.empty())
 	{
-		output["errors"].push_back(formatError(
+		output["errors"].emplace_back(formatError(
 			Error::Type::JSONError,
 			"general",
 			"Field \"settings.remappings\" cannot be used for Yul."
@@ -1635,7 +1635,7 @@ Json StandardCompiler::compileYul(InputsAndSettings _inputsAndSettings)
 	}
 	if (_inputsAndSettings.revertStrings != RevertStrings::Default)
 	{
-		output["errors"].push_back(formatError(
+		output["errors"].emplace_back(formatError(
 			Error::Type::JSONError,
 			"general",
 			"Field \"settings.debug.revertStrings\" cannot be used for Yul."
@@ -1658,7 +1658,7 @@ Json StandardCompiler::compileYul(InputsAndSettings _inputsAndSettings)
 	// Inconsistent state - stop here to receive error reports from users
 	if (!stack.parseAndAnalyze(sourceName, sourceContents) && stack.errors().empty())
 	{
-		output["errors"].push_back(formatError(
+		output["errors"].emplace_back(formatError(
 			Error::Type::InternalCompilerError,
 			"general",
 			"No error reported, but compilation failed."
@@ -1672,7 +1672,7 @@ Json StandardCompiler::compileYul(InputsAndSettings _inputsAndSettings)
 		{
 			auto err = std::dynamic_pointer_cast<Error const>(error);
 
-			output["errors"].push_back(formatErrorWithException(
+			output["errors"].emplace_back(formatErrorWithException(
 				stack,
 				*error,
 				err->type(),
@@ -1743,7 +1743,6 @@ Json StandardCompiler::compileYul(InputsAndSettings _inputsAndSettings)
 	return output;
 }
 
-
 Json StandardCompiler::compile(Json const& _input) noexcept
 {
 	YulStringRepository::reset();
@@ -1765,9 +1764,29 @@ Json StandardCompiler::compile(Json const& _input) noexcept
 		else
 			return formatFatalError(Error::Type::JSONError, "Only \"Solidity\", \"Yul\", \"SolidityAST\" or \"EVMAssembly\" is supported as a language.");
 	}
+	catch (Json::parse_error const& _exception)
+	{
+		return formatFatalError(Error::Type::InternalCompilerError, std::string("JSON parse_error exception: ") + _exception.what());
+	}
+	catch (Json::invalid_iterator const& _exception)
+	{
+		return formatFatalError(Error::Type::InternalCompilerError, std::string("JSON invalid_iterator exception: ") + _exception.what());
+	}
+	catch (Json::type_error const& _exception)
+	{
+		return formatFatalError(Error::Type::InternalCompilerError, std::string("JSON type_error exception: ") + _exception.what());
+	}
+	catch (Json::out_of_range const& _exception)
+	{
+		return formatFatalError(Error::Type::InternalCompilerError, std::string("JSON out_of_range exception: ") + _exception.what());
+	}
+	catch (Json::other_error const& _exception)
+	{
+		return formatFatalError(Error::Type::InternalCompilerError, std::string("JSON other_error exception: ") + _exception.what());
+	}
 	catch (Json::exception const& _exception)
 	{
-		return formatFatalError(Error::Type::InternalCompilerError, std::string("JSON exception: ") + _exception.what());
+		return formatFatalError(Error::Type::InternalCompilerError, std::string("JSON runtime exception: ") + _exception.what());
 	}
 	catch (util::Exception const& _exception)
 	{
@@ -1811,20 +1830,21 @@ Json StandardCompiler::formatFunctionDebugData(
 	std::map<std::string, evmasm::LinkerObject::FunctionDebugData> const& _debugInfo
 )
 {
-	Json ret(Json::object());
+	static_assert(std::is_same_v<Json::number_unsigned_t, uint64_t>);
+	Json ret{Json::object()};
 	for (auto const& [name, info]: _debugInfo)
 	{
-		Json fun;
+		Json fun{Json::object()};
 		if (info.sourceID)
-			fun["id"] = *info.sourceID;
+			fun["id"] = Json::number_unsigned_t(*info.sourceID);
 		else
 			fun["id"] = Json{};
 		if (info.bytecodeOffset)
-			fun["entryPoint"] = *info.bytecodeOffset;
+			fun["entryPoint"] = Json::number_unsigned_t(*info.bytecodeOffset);
 		else
 			fun["entryPoint"] = Json{};
-		fun["parameterSlots"] = info.params;
-		fun["returnSlots"] = info.returns;
+		fun["parameterSlots"] = Json::number_unsigned_t(info.params);
+		fun["returnSlots"] = Json::number_unsigned_t(info.returns);
 		ret[name] = std::move(fun);
 	}
 
