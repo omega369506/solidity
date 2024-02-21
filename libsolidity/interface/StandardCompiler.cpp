@@ -394,7 +394,7 @@ Json collectEVMObject(
 
 std::optional<Json> checkKeys(Json const& _input, std::set<std::string> const& _keys, std::string const& _name)
 {
-	if (!!_input && !_input.is_object())
+	if (!_input.is_object())
 		return formatFatalError(Error::Type::JSONError, "\"" + _name + "\" must be an object");
 
 	for (auto const& [member, _]: _input.items())
@@ -513,7 +513,7 @@ std::optional<Json> checkMetadataKeys(Json const& _input)
 
 std::optional<Json> checkOutputSelection(Json const& _outputSelection)
 {
-	if (!!_outputSelection && !_outputSelection.is_object())
+	if (!_outputSelection.empty() && !_outputSelection.is_object())
 		return formatFatalError(Error::Type::JSONError, "\"settings.outputSelection\" must be an object");
 
 	for (auto const& [sourceName, _]: _outputSelection.items())
@@ -640,9 +640,9 @@ std::variant<StandardCompiler::InputsAndSettings, Json> StandardCompiler::parseI
 	if (auto result = checkRootKeys(_input))
 		return *result;
 
-	ret.language = _input["language"].get<std::string>();
+	ret.language = _input.value<std::string>("language", "");
 
-	Json const& sources = _input["sources"];
+	Json const& sources = _input.value<Json>("sources", Json());
 
 	if (!sources.is_object() && !sources.is_null())
 		return formatFatalError(Error::Type::JSONError, "\"sources\" is not a JSON object.");
@@ -661,10 +661,10 @@ std::variant<StandardCompiler::InputsAndSettings, Json> StandardCompiler::parseI
 			if (auto result = checkSourceKeys(sources[sourceName], sourceName))
 				return *result;
 
-			if (sources[sourceName]["keccak256"].is_string())
+			if (sources[sourceName].contains("keccak256") && sources[sourceName]["keccak256"].is_string())
 				hash = sources[sourceName]["keccak256"].get<std::string>();
 
-			if (sources[sourceName]["content"].is_string())
+			if (sources[sourceName].contains("content") && sources[sourceName]["content"].is_string())
 			{
 				std::string content = sources[sourceName]["content"].get<std::string>();
 				if (!hash.empty() && !hashMatchesContent(hash, content))
@@ -754,12 +754,12 @@ std::variant<StandardCompiler::InputsAndSettings, Json> StandardCompiler::parseI
 				"EVMAssembly import only supports exactly one input file."
 			);
 	}
-	Json const& auxInputs = _input["auxiliaryInput"];
+	Json const& auxInputs = _input.value("auxiliaryInput", Json::object());
 
 	if (auto result = checkAuxiliaryInputKeys(auxInputs))
 		return *result;
 
-	if (!!auxInputs)
+	if (!auxInputs.empty())
 	{
 		Json const& smtlib2Responses = auxInputs["smtlib2responses"];
 		if (!!smtlib2Responses)
@@ -790,7 +790,7 @@ std::variant<StandardCompiler::InputsAndSettings, Json> StandardCompiler::parseI
 		}
 	}
 
-	Json const& settings = _input["settings"];
+	Json const& settings = _input.value("settings", Json::object());
 
 	if (auto result = checkSettingsKeys(settings))
 		return *result;
@@ -888,7 +888,7 @@ std::variant<StandardCompiler::InputsAndSettings, Json> StandardCompiler::parseI
 	if (settings.contains("remappings") && !settings["remappings"].is_array())
 		return formatFatalError(Error::Type::JSONError, "\"settings.remappings\" must be an array of strings.");
 
-	for (auto const& remapping: settings["remappings"])
+	for (auto const& remapping: settings.value("remappings", Json::array()))
 	{
 		if (!remapping.is_string())
 			return formatFatalError(Error::Type::JSONError, "\"settings.remappings\" must be an array of strings");
@@ -907,7 +907,7 @@ std::variant<StandardCompiler::InputsAndSettings, Json> StandardCompiler::parseI
 			ret.optimiserSettings = std::get<OptimiserSettings>(std::move(optimiserSettings));
 	}
 
-	Json const& jsonLibraries = settings["libraries"];
+	Json const& jsonLibraries = settings.value("libraries", Json::object());
 	if (!jsonLibraries.is_object())
 		return formatFatalError(Error::Type::JSONError, "\"libraries\" is not a JSON object.");
 	for (auto const& [sourceName, _]: jsonLibraries.items())
@@ -947,7 +947,7 @@ std::variant<StandardCompiler::InputsAndSettings, Json> StandardCompiler::parseI
 		}
 	}
 
-	Json const& metadataSettings = settings["metadata"];
+	Json const& metadataSettings = settings.value("metadata", Json::object());
 
 	if (auto result = checkMetadataKeys(metadataSettings))
 		return *result;
@@ -961,7 +961,7 @@ std::variant<StandardCompiler::InputsAndSettings, Json> StandardCompiler::parseI
 		CompilerStack::defaultMetadataFormat() :
 		CompilerStack::MetadataFormat::NoMetadata;
 
-	ret.metadataLiteralSources = metadataSettings["useLiteralContent"].get<bool>();
+	ret.metadataLiteralSources = metadataSettings.value("useLiteralContent", false);
 	if (metadataSettings.contains("bytecodeHash"))
 	{
 		auto metadataHash = metadataSettings["bytecodeHash"].get<std::string>();
@@ -980,7 +980,7 @@ std::variant<StandardCompiler::InputsAndSettings, Json> StandardCompiler::parseI
 			);
 	}
 
-	Json const& outputSelection = settings["outputSelection"];
+	Json const& outputSelection = settings.value("outputSelection", Json::object());
 
 	if (auto jsonError = checkOutputSelection(outputSelection))
 		return *jsonError;
@@ -993,7 +993,7 @@ std::variant<StandardCompiler::InputsAndSettings, Json> StandardCompiler::parseI
 			"Requested output selection conflicts with \"settings.stopAfter\"."
 		);
 
-	Json const& modelCheckerSettings = settings["modelChecker"];
+	Json const& modelCheckerSettings = settings.value("modelChecker", Json::object());
 
 	if (auto result = checkModelCheckerSettingsKeys(modelCheckerSettings))
 		return *result;
@@ -1793,9 +1793,9 @@ std::string StandardCompiler::compile(std::string const& _input) noexcept
 		return "{\"errors\":[{\"type\":\"JSONError\",\"component\":\"general\",\"severity\":\"error\",\"message\":\"Error parsing input JSON.\"}]}";
 	}
 
-	// cout << "Input: " << input.toStyledString() << endl;
+	std::cout << "Input: " << solidity::util::jsonPrettyPrint(input) << std::endl;
 	Json output = compile(input);
-	// cout << "Output: " << output.toStyledString() << endl;
+	std::cout << "Output: " << solidity::util::jsonPrettyPrint(output) << std::endl;
 
 	try
 	{
