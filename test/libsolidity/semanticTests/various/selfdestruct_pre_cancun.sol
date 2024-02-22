@@ -64,10 +64,10 @@ contract D {
 // constructor(), 1 ether ->
 // gas irOptimized: 67028
 // gas irOptimized code: 175400
-// gas legacy: 76163
-// gas legacy code: 297400
-// gas legacyOptimized: 66516
-// gas legacyOptimized code: 168000
+// gas legacy: 76227
+// gas legacy code: 298200
+// gas legacyOptimized: 66624
+// gas legacyOptimized code: 169200
 // exists() -> false
 // test_create_and_terminate() ->
 // exists() -> false

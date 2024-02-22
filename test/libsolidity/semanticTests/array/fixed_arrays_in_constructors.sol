@@ -11,9 +11,9 @@ contract Creator {
 // constructor(): 1, 2, 3, 4 ->
 // gas irOptimized: 103927
 // gas irOptimized code: 22400
-// gas legacy: 115186
+// gas legacy: 115185
 // gas legacy code: 59000
-// gas legacyOptimized: 104909
-// gas legacyOptimized code: 23800
+// gas legacyOptimized: 104956
+// gas legacyOptimized code: 24400
 // r() -> 4
 // ch() -> 3

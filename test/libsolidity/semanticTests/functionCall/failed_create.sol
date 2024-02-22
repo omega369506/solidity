@@ -21,16 +21,16 @@ contract C {
 // gas irOptimized code: 104600
 // gas legacy: 70147
 // gas legacy code: 215400
-// gas legacyOptimized: 61715
-// gas legacyOptimized code: 106800
+// gas legacyOptimized: 61763
+// gas legacyOptimized code: 107400
 // f(uint256): 20 -> 0x137aa4dfc0911524504fcd4d98501f179bc13b4a
 // x() -> 1
 // f(uint256): 20 -> FAILURE
 // x() -> 1
 // stack(uint256): 1023 -> FAILURE
 // gas irOptimized: 252410
-// gas legacy: 477722
-// gas legacyOptimized: 299567
+// gas legacy: 476845
+// gas legacyOptimized: 299061
 // x() -> 1
 // stack(uint256): 10 -> 0x87948bd7ebbe13a00bfd930c93e4828ab18e3908
 // x() -> 2

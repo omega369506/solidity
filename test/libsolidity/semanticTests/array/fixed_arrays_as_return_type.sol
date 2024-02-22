@@ -23,4 +23,4 @@ contract B {
 // gas legacy: 68001
 // gas legacy code: 162000
 // gas legacyOptimized: 60037
-// gas legacyOptimized code: 70600
+// gas legacyOptimized code: 71200
