@@ -1087,13 +1087,14 @@ BOOST_AUTO_TEST_CASE(standard_json_include_paths)
 	TemporaryDirectory tempDir({"base/", "include/", "lib/nested/"}, TEST_CASE_NAME);
 	TemporaryWorkingDirectory tempWorkDir(tempDir);
 
-	std::string const mainContractSource = withPreamble(
+	std::string mainContractSource = withPreamble(
 		"import 'contract_via_callback.sol';\n"
 		"import 'include_via_callback.sol';\n"
 		"import 'nested_via_callback.sol';\n"
 		"import 'lib_via_callback.sol';\n"
 	);
-
+	// newlines '\n' (0x0a) are not allowed in json.
+	boost::algorithm::replace_all(mainContractSource, "\n", "\\n");
 	std::string const standardJsonInput = R"(
 		{
 			"language": "Solidity",
@@ -1164,8 +1165,13 @@ BOOST_AUTO_TEST_CASE(standard_json_include_paths)
 	for (Json const& errorDict: parsedStdout["errors"])
 		// The error list might contain pre-release compiler warning
 		BOOST_TEST(errorDict["severity"] != "error");
+	// we might be able to use ranges again, but the nlohmann::json support is not yet fully there.
+	// (parsedStdout["sources"].items() | ranges::views::keys | ranges::to<std::set>)
+	std::set<std::string> sources;
+	for (auto const& [key, _]: parsedStdout["sources"].items())
+		sources.insert(key);
 	BOOST_TEST(
-		(parsedStdout["sources"].items() | ranges::to<std::set>) ==
+		sources ==
 		(expectedSources | ranges::views::keys | ranges::to<std::set>) + std::set<std::string>{"main.sol"}
 	);
 

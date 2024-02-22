@@ -846,7 +846,7 @@ Json CompilerStack::generatedSources(std::string const& _contractName, bool _run
 		c.runtimeGeneratedSources :
 		c.generatedSources;
 	return sources.init([&]{
-		Json sources{Json::array()};
+		Json sources(Json::array());
 		// If there is no compiler, then no bytecode was generated and thus no
 		// sources were generated (or we compiled "via IR").
 		if (c.compiler)
@@ -1642,7 +1642,7 @@ CompilerStack::Source const& CompilerStack::source(std::string const& _sourceNam
 
 std::string CompilerStack::createMetadata(Contract const& _contract, bool _forIR) const
 {
-	Json meta{Json::object()};
+	Json meta(Json::object());
 	meta["version"] = 1;
 	std::string sourceType;
 	switch (m_compilationSourceType)
@@ -1697,7 +1697,7 @@ std::string CompilerStack::createMetadata(Contract const& _contract, bool _forIR
 		meta["settings"]["optimizer"]["enabled"] = true;
 	else
 	{
-		Json details{Json::object()};
+		Json details(Json::object());
 
 		details["orderLiterals"] = m_optimiserSettings.runOrderLiterals;
 		details["inliner"] = m_optimiserSettings.runInliner;

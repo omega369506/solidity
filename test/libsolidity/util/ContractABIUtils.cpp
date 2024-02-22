@@ -165,7 +165,7 @@ std::optional<solidity::frontend::test::ParameterList> ContractABIUtils::paramet
 	std::string const& _functionSignature
 )
 {
-	if (!_contractABI)
+	if (_contractABI.empty())
 		return std::nullopt;
 
 	for (auto const& function: _contractABI)

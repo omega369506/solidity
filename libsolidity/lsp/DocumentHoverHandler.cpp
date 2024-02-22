@@ -108,7 +108,7 @@ void DocumentHoverHandler::operator()(MessageID _id, Json const& _args)
 
 	if (tooltipText.empty())
 	{
-		client().reply(_id, Json{});
+		client().reply(_id, Json());
 		return;
 	}
 
