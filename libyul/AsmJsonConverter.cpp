@@ -85,7 +85,7 @@ Json AsmJsonConverter::operator()(Assignment const& _node) const
 	Json ret = createAstNode(originLocationOf(_node), nativeLocationOf(_node), "YulAssignment");
 	for (auto const& var: _node.variableNames)
 		ret["variableNames"].emplace_back((*this)(var));
-	ret["value"] = _node.value ? std::visit(*this, *_node.value) : Json{};
+	ret["value"] = _node.value ? std::visit(*this, *_node.value) : Json();
 	return ret;
 }
 
@@ -109,7 +109,7 @@ Json AsmJsonConverter::operator()(VariableDeclaration const& _node) const
 	Json ret = createAstNode(originLocationOf(_node), nativeLocationOf(_node), "YulVariableDeclaration");
 	for (auto const& var: _node.variables)
 		ret["variables"].emplace_back((*this)(var));
-	ret["value"] = _node.value ? std::visit(*this, *_node.value) : Json{};
+	ret["value"] = _node.value ? std::visit(*this, *_node.value) : Json();
 	return ret;
 }
 
@@ -181,7 +181,7 @@ Json AsmJsonConverter::operator()(Leave const& _node) const
 
 Json AsmJsonConverter::createAstNode(langutil::SourceLocation const& _originLocation, langutil::SourceLocation const& _nativeLocation, std::string _nodeType) const
 {
-	Json ret{Json::object()};
+	Json ret(Json::object());
 	ret["nodeType"] = std::move(_nodeType);
 	auto srcLocation = [&](int start, int end) -> std::string
 	{
@@ -196,7 +196,7 @@ Json AsmJsonConverter::createAstNode(langutil::SourceLocation const& _originLoca
 template <class T>
 Json AsmJsonConverter::vectorOfVariantsToJson(std::vector<T> const& _vec) const
 {
-	Json ret{Json::array()};
+	Json ret(Json::array());
 	for (auto const& var: _vec)
 		ret.emplace_back(std::visit(*this, var));
 	return ret;
