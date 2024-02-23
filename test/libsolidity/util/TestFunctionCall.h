@@ -97,7 +97,7 @@ public:
 	void setRawBytes(const bytes _rawBytes) { m_rawBytes = _rawBytes; }
 	void setGasCostExcludingCode(std::string const& _runType, u256 const& _gasCost) { m_gasCostsExcludingCode[_runType] = _gasCost; }
 	void setCodeDepositGasCost(std::string const& _runType, u256 const& _gasCost) { m_codeDepositGasCosts[_runType] = _gasCost; }
-	void setContractABI(Json::Value _contractABI) { m_contractABI = std::move(_contractABI); }
+	void setContractABI(Json _contractABI) { m_contractABI = std::move(_contractABI); }
 	void setSideEffects(std::vector<std::string> _sideEffects) { m_call.actualSideEffects = _sideEffects; }
 
 private:
