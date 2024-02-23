@@ -48,11 +48,12 @@ void removeNullMembersHelper(Json& _json)
 	}
 	else if (_json.is_object())
 	{
-		for (auto it = _json.begin(); it != _json.end(); )
+		for (auto it = _json.begin(); it != _json.end();)
 		{
 			if (it->is_null())
 				it = _json.erase(it);
-			else {
+			else
+			{
 				removeNullMembersHelper(*it);
 				++it;
 			}
@@ -118,6 +119,30 @@ std::string format_like_jsoncpp(std::string const& _dumped, JsonFormat const& _f
 	return trim_right_all_lines(reformatted.str());
 }
 
+std::string escape_newlines_and_tabs_within_string_literals(std::string const& _json)
+{
+	std::stringstream fixed;
+	bool inQuotes = false;
+	for (size_t i = 0; i < _json.size(); ++i)
+	{
+		char c = _json[i];
+		if (c == '"' && (i == 0 || _json[i - 1] != '\\'))
+			inQuotes = !inQuotes;
+		if (inQuotes)
+		{
+			if (c == '\n')
+				fixed << "\\n";
+			else if (c == '\t')
+				fixed << "\\t";
+			else
+				fixed << c;
+		}
+		else
+			fixed << c;
+	}
+	return fixed.str();
+}
+
 } // end anonymous namespace
 
 Json removeNullMembers(Json _json)
@@ -150,7 +175,13 @@ bool jsonParseStrict(std::string const& _input, Json& _json, std::string* _errs 
 {
 	try
 	{
-		_json = Json::parse(_input);
+		_json = Json::parse(
+			// TODO: remove this in the next breaking release?
+			escape_newlines_and_tabs_within_string_literals(_input),
+			/* callback */ nullptr,
+			/* allow exceptions */ true,
+			/* ignore_comments */ true
+		);
 		_errs = {};
 		return true;
 	}
