@@ -63,12 +63,12 @@ public:
 	template <class T>
 	Json toJson(std::vector<ASTPointer<T>> const& _nodes)
 	{
-		Json ret{Json::array()};
+		Json ret(Json::array());
 		for (auto const& n: _nodes)
 			if (n)
 				appendMove(ret, toJson(*n));
 			else
-				ret.emplace_back(Json{});
+				ret.emplace_back(Json());
 		return ret;
 	}
 	bool visit(SourceUnit const& _node) override;
@@ -148,11 +148,11 @@ private:
 	static std::string namePathToString(std::vector<ASTString> const& _namePath);
 	static Json idOrNull(ASTNode const* _pt)
 	{
-		return _pt ? Json(nodeId(*_pt)) : Json{};
+		return _pt ? Json(nodeId(*_pt)) : Json();
 	}
 	Json toJsonOrNull(ASTNode const* _node)
 	{
-		return _node ? toJson(*_node) : Json{};
+		return _node ? toJson(*_node) : Json();
 	}
 	Json inlineAssemblyIdentifierToJson(std::pair<yul::Identifier const* , InlineAssemblyAnnotation::ExternalIdentifierInfo> _info) const;
 	static std::string location(VariableDeclaration::Location _location);
@@ -178,7 +178,7 @@ private:
 		if (_order)
 			std::sort(tmp.begin(), tmp.end());
 
-		Json json{Json::array()};
+		Json json(Json::array());
 		for (int64_t val: tmp)
 			json.emplace_back(val);
 		return json;
