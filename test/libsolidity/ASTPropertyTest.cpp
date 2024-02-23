@@ -160,7 +160,12 @@ void ASTPropertyTest::extractTestsFromAST(Json const& _astJson)
 						!propertyNode->is_object() && !propertyNode->is_array(),
 						"Property \"" + testedProperty + "\" is an object or an array."
 					);
-					m_tests[testId].obtainedValue = propertyNode->get<std::string>();
+					if (propertyNode->is_string())
+						m_tests[testId].obtainedValue = propertyNode->get<std::string>();
+					else if  (propertyNode->is_boolean())
+						m_tests[testId].obtainedValue = fmt::format("{}", propertyNode->get<bool>());
+					else
+						soltestAssert(false);
 				}
 			}
 
@@ -196,7 +201,7 @@ TestCase::TestResult ASTPropertyTest::run(std::ostream& _stream, std::string con
 		));
 
 	Json astJson = ASTJsonExporter(compiler.state()).toJson(compiler.ast("A"));
-	soltestAssert(astJson);
+	soltestAssert(!astJson.empty());
 
 	extractTestsFromAST(astJson);
 
