@@ -2,20 +2,7 @@
 	"language": "Solidity",
 	"sources": {
 		"A": {
-			"content": "
-				// SPDX-License-Identifier: GPL-3.0
-				pragma solidity >=0.0;
-
-				library L {
-					function f() external {}
-				}
-
-				contract C {
-					function foo() public {
-						L.f();
-					}
-				}
-			"
+			"content": "${CONTENT_OF_INPUT_DOT_SOL}"
 		}
 	},
 	"settings": {

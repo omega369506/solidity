@@ -124,12 +124,14 @@ AssemblyItem Assembly::createAssemblyItemFromJSON(Json const& _json, std::vector
 	solRequire(!name.empty(), AssemblyImportException, "Member 'name' is empty.");
 
 	SourceLocation location;
-	location.start = get<int>(_json["begin"]);
-	location.end = get<int>(_json["end"]);
-	int srcIndex = getOrDefault<int>(_json["source"], -1);
-	size_t modifierDepth = static_cast<size_t>(getOrDefault<int>(_json["modifierDepth"], 0));
-	std::string value = getOrDefault<std::string>(_json["value"], "");
-	std::string jumpType = getOrDefault<std::string>(_json["jumpType"], "");
+	if (_json.contains("begin"))
+		location.start = get<int>(_json["begin"]);
+	if (_json.contains("end"))
+		location.end = get<int>(_json["end"]);
+	int srcIndex = getOrDefault<int>(_json, "source", -1);
+	size_t modifierDepth = static_cast<size_t>(getOrDefault<int>(_json, "modifierDepth", 0));
+	std::string value = getOrDefault<std::string>(_json, "value", "");
+	std::string jumpType = getOrDefault<std::string>(_json, "jumpType", "");
 
 	auto updateUsedTags = [&](u256 const& data)
 	{
@@ -566,10 +568,8 @@ std::pair<std::shared_ptr<Assembly>, std::vector<std::string>> Assembly::fromJSO
 		solRequire(_json[".data"].is_object(), AssemblyImportException, "Optional member '.data' is not an object.");
 		Json const& data = _json[".data"];
 		std::map<size_t, std::shared_ptr<Assembly>> subAssemblies;
-		for (Json::const_iterator dataIter = data.begin(); dataIter != data.end(); dataIter++)
+		for (auto const& [dataItemID, value] : data.items())
 		{
-			solAssert(dataIter.value().is_string());
-			std::string dataItemID = dataIter.value().get<std::string>();
 			Json const& dataItem = data[dataItemID];
 			if (dataItem.is_string())
 			{

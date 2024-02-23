@@ -95,11 +95,12 @@ struct helper_impl
 	{
 		return (_input.*convertMember)();
 	}
-	static T getOrDefault(Json const& _input, T _default = {})
+	static T getOrDefault(Json const& _input, std::string const& _name, T _default = {})
 	{
 		T result = _default;
-		if (isOfType(_input))
-			result = (_input.*convertMember)();
+		if (_input.contains(_name))
+			if (isOfType(_input[_name]))
+				result = (_input[_name].*convertMember)();
 		return result;
 	}
 };
@@ -139,9 +140,9 @@ T get(Json const& _input)
 }
 
 template<typename T>
-T getOrDefault(Json const& _input, T _default = {})
+T getOrDefault(Json const& _input, std::string const& _name, T _default = {})
 {
-	return detail::helper<T>::getOrDefault(_input, _default);
+	return detail::helper<T>::getOrDefault(_input, _name, _default);
 }
 
 } // namespace solidity::util

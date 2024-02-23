@@ -1812,9 +1812,9 @@ std::string StandardCompiler::compile(std::string const& _input) noexcept
 		return "{\"errors\":[{\"type\":\"JSONError\",\"component\":\"general\",\"severity\":\"error\",\"message\":\"Error parsing input JSON.\"}]}";
 	}
 
-	std::cout << "Input: " << solidity::util::jsonPrettyPrint(input) << std::endl;
+//	std::cout << "Input: " << solidity::util::jsonPrettyPrint(input) << std::endl;
 	Json output = compile(input);
-	std::cout << "Output: " << solidity::util::jsonPrettyPrint(output) << std::endl;
+//	std::cout << "Output: " << solidity::util::jsonPrettyPrint(output) << std::endl;
 
 	try
 	{
