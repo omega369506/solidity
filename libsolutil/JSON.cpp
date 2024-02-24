@@ -126,8 +126,29 @@ std::string escape_newlines_and_tabs_within_string_literals(std::string const& _
 	for (size_t i = 0; i < _json.size(); ++i)
 	{
 		char c = _json[i];
-		if (c == '"' && (i == 0 || _json[i - 1] != '\\'))
-			inQuotes = !inQuotes;
+
+		// Originally we had just this here:
+		// if (c == '"' && (i == 0 || _json[i - 1] != '\\'))
+		//    inQuotes = !inQuotes;
+		// However, this is not working if the escape character itself was escaped. e.g. "\n\r'\"\\".
+
+		if (c == '"')
+		{
+			size_t backslashCount = 0;
+			size_t j = i;
+			while (j > 0 && _json[j - 1] == '\\')
+			{
+				backslashCount++;
+				j--;
+			}
+			if (backslashCount % 2 == 0)
+			{
+				inQuotes = !inQuotes;
+				fixed << c;
+				continue;
+			}
+		}
+
 		if (inQuotes)
 		{
 			if (c == '\n')
